@@ -66,9 +66,21 @@ LiquidCrystal_I2C lcd(0x27, 16, 2);
  *        it initiates the entry sequence. If full, triggers alarm.
  */
 void checkEntrySensor() {
-  // TODO: Implement ultrasonic distance measurement for entry
-  // TODO: Implement software debounce to prevent false positives
-  // TODO: Call openGate() if space > 0, else call triggerFullAlarm()
+ long distance = readDistance(ENTRY_TRIG_PIN, ENTRY_ECHO_PIN);
+
+if(distance < DETECTION_DISTANCE)
+{
+    if(currentSpaces > 0)
+    {
+        currentSpaces--;
+        openGate();
+    }
+    else
+    {
+        triggerFullAlarm();
+    }
+
+    delay(1000); // debounce
 }
 
 /**
@@ -77,8 +89,18 @@ void checkEntrySensor() {
  *        and increments available slots.
  */
 void checkExitSensor() {
-  // TODO: Implement ultrasonic distance measurement for exit
-  // TODO: Call openGate() to let vehicle out and increment currentSpaces
+ long distance = readDistance(EXIT_TRIG_PIN, EXIT_ECHO_PIN);
+
+if(distance < DETECTION_DISTANCE)
+{
+    if(currentSpaces < MAX_SPACES)
+    {
+        currentSpaces++;
+    }
+
+    openGate();
+
+    delay(1000);
 }
 
 /**
@@ -86,9 +108,30 @@ void checkExitSensor() {
  *        Updates LED status based on capacity (Green=Available, Red=Full).
  */
 void updateDisplay() {
-  // TODO: Update LCD text with currentSpaces
-  // TODO: Set GREEN_LED_PIN HIGH and RED_LED_PIN LOW if currentSpaces > 0
-  // TODO: Set RED_LED_PIN HIGH and GREEN_LED_PIN LOW if currentSpaces == 0
+  lcd.clear();
+
+if(currentSpaces > 0)
+{
+    digitalWrite(GREEN_LED_PIN, HIGH);
+    digitalWrite(RED_LED_PIN, LOW);
+
+    lcd.setCursor(0,0);
+    lcd.print("Parking Ready");
+
+    lcd.setCursor(0,1);
+    lcd.print("Slots: ");
+    lcd.print(currentSpaces);
+}
+else
+{
+    digitalWrite(GREEN_LED_PIN, LOW);
+    digitalWrite(RED_LED_PIN, HIGH);
+
+    lcd.setCursor(0,0);
+    lcd.print("Parking Full");
+
+    lcd.setCursor(0,1);
+    lcd.print("Slots: 0");
 }
 
 /**
@@ -97,11 +140,15 @@ void updateDisplay() {
  *        to pass, and closes the gate back to 0 degrees. Updates slots.
  */
 void openGate() {
-  // TODO: Implement servo movement to open
-  // TODO: Implement short buzzer beep
-  // TODO: Implement delay or wait logic for vehicle clearance
-  // TODO: Implement servo movement to close
-}
+ gateServo.write(90);
+
+tone(BUZZER_PIN,2000);
+delay(200);
+noTone(BUZZER_PIN);
+
+delay(3000);
+
+gateServo.write(0);
 
 /**
  * @brief Handles the lot full error state.
@@ -109,12 +156,43 @@ void openGate() {
  *        and emits a long warning beep.
  */
 void triggerFullAlarm() {
-  // TODO: Implement long buzzer tone
-  // TODO: Implement Red LED flash logic
-  // TODO: Update LCD warning message
-}
+  lcd.clear();
 
-// ==========================================
+lcd.setCursor(0,0);
+lcd.print("Lot Full!");
+
+lcd.setCursor(0,1);
+lcd.print("Wait");
+
+for(int i=0;i<3;i++)
+{
+    digitalWrite(RED_LED_PIN,HIGH);
+
+    tone(BUZZER_PIN,500);
+
+    delay(300);
+
+    digitalWrite(RED_LED_PIN,LOW);
+
+    noTone(BUZZER_PIN);
+
+    delay(300);
+}
+long readDistance(int trigPin, int echoPin);
+{
+    digitalWrite(trigPin,LOW);
+    delayMicroseconds(2);
+
+    digitalWrite(trigPin,HIGH);
+    delayMicroseconds(10);
+    digitalWrite(trigPin,LOW);
+
+    long duration = pulseIn(echoPin,HIGH);
+
+    long distance = duration * 0.034 / 2;
+
+    return distance;
+}
 // 7. setup() Function
 // ==========================================
 void setup() {
