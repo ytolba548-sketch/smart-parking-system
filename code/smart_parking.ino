@@ -112,7 +112,7 @@ void setup() {
     pinMode(RED_LED_PIN, OUTPUT);
     pinMode(BUZZER_PIN, OUTPUT);
 
-    lcd.init();
+    lcd.begin(16, 2); 
     lcd.backlight();
     lcd.setCursor(0, 0);
     lcd.print("Smart Parking");
